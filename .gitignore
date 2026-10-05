@@ -1,0 +1,17 @@
+# Swift Package Manager and Xcode
+.build/
+.swiftpm/
+/Packages/
+*.xcuserstate
+xcuserdata/
+
+# Output and local tooling
+separated/
+__pycache__/
+*.py[oc]
+.DS_Store
+.claude/
+.codex/
+
+# Local-only research archive (benchmarks, experiment logs)
+/private/

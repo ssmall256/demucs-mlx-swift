@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root"
+swift test -c release --skip NativeParityTests
+if [[ -d .build/fixtures ]]; then
+  extra=()
+  if [[ -f .build/full-fixtures/audio_30.safetensors && -f .build/models/htdemucs_ft.safetensors ]]; then
+    extra=("DEMUCS_FULL_FIXTURES=$root/.build/full-fixtures" "DEMUCS_MODEL_DIRECTORY=$root/.build/models")
+  fi
+  exec env \
+    "DEMUCS_FIXTURE_DIRECTORY=$root/.build/fixtures" \
+    "DEMUCS_SPECTRAL_CACHE=$root/.build/test-spectral-cache.json" \
+    "${extra[@]}" \
+    swift test -c release --skip-build --filter NativeParityTests
+fi

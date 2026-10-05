@@ -1,0 +1,3 @@
+# Install alongside a demucs-mlx conversion environment, never in the Swift SDK.
+# diffq is needed only for the original mdx_q and mdx_extra_q checkpoints.
+diffq==0.2.4
