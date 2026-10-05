@@ -36,7 +36,7 @@ jobs:
           version = os.environ["PACKAGE_VERSION"]
           if not re.fullmatch(r"\d+\.\d+\.\d+", version):
               raise SystemExit(f"Releases require a final MAJOR.MINOR.PATCH version, got {version}")
-          source = Path("Sources/DemucsCLI/main.swift").read_text()
+          source = Path("Sources/DemucsCLI/DemucsCommand.swift").read_text()
           match = re.search(r'version: "([^"]+)"', source)
           if not match or match.group(1) != version:
               found = match.group(1) if match else None
