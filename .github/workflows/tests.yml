@@ -1,0 +1,86 @@
+name: tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: macos-26
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Show toolchain
+      run: swift --version
+
+    - name: Check formatting
+      run: swift format lint --strict -r Sources Tests Package.swift
+
+  test:
+    runs-on: macos-26
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Show toolchain
+      run: xcodebuild -version && swift --version
+
+    - name: Build without warnings
+      run: |
+        ./script/build build 2>&1 | tee build.log
+        if [ -s build.log ]; then
+          echo "The build printed warnings or errors." >&2
+          exit 1
+        fi
+
+    - name: Run tests
+      run: ./script/test
+
+    - name: Test CLI
+      run: |
+        bin=.build/xcode/Build/Products/Release/demucs-mlx-swift
+        "$bin" --version
+        "$bin" separate --list-models
+
+  separate:
+    name: download and separate
+    runs-on: macos-26
+    needs: [test]
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Build
+      run: ./script/build build
+
+    - name: Separate a generated track with a downloaded model
+      run: |
+        python3 - <<'PY'
+        import math, struct, wave
+        rate, seconds = 44100, 6
+        with wave.open("tone.wav", "wb") as out:
+            out.setnchannels(2); out.setsampwidth(2); out.setframerate(rate)
+            frames = bytearray()
+            for i in range(rate * seconds):
+                left = int(8000 * math.sin(2 * math.pi * 220 * i / rate))
+                right = int(8000 * math.sin(2 * math.pi * 330 * i / rate))
+                frames += struct.pack("<hh", left, right)
+            out.writeframes(bytes(frames))
+        PY
+        bin=.build/xcode/Build/Products/Release/demucs-mlx-swift
+        "$bin" separate tone.wav --cache models --batch-size 1 --seed 1 -o out
+        test "$(ls out/htdemucs/tone | sort | tr '\n' ' ')" = "bass.wav drums.wav other.wav vocals.wav "
+
+  ios:
+    name: iOS example build
+    runs-on: macos-26
+    needs: [test]
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Build the device harness for iOS
+      run: |
+        mkdir -p .build/iOSAssets   # device fixtures are staged locally; CI only compiles
+        xcodebuild -project Examples/iOS/DemucsDeviceHarness.xcodeproj \
+          -scheme DemucsDeviceHarness -configuration Release \
+          -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build

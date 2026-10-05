@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import CDemucsAudioIO
 import DemucsMLX
 import Foundation
@@ -135,8 +135,8 @@ extension DemucsAudio {
     }
     let storage = try OwnedPCMStorage(channels: channels, capacity: Int(estimate))
     var offset = 0
-    var inputError: Error?
-    var ended = false
+    nonisolated(unsafe) var inputError: Error?
+    nonisolated(unsafe) var ended = false
     while true {
       try Task.checkCancellation()
       guard offset < storage.capacity else {

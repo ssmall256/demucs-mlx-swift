@@ -1,0 +1,129 @@
+name: Release (GitHub)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag and release (for example: 0.1.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-github-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: macos-26
+    env:
+      PACKAGE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate main ref, version and changelog
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          if os.environ["GITHUB_REF"] != "refs/heads/main":
+              raise SystemExit("Releases must be dispatched from main")
+          version = os.environ["PACKAGE_VERSION"]
+          if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+              raise SystemExit(f"Releases require a final MAJOR.MINOR.PATCH version, got {version}")
+          source = Path("Sources/DemucsCLI/main.swift").read_text()
+          match = re.search(r'version: "([^"]+)"', source)
+          if not match or match.group(1) != version:
+              found = match.group(1) if match else None
+              raise SystemExit(f"Requested {version}, but the CLI reports {found}")
+          if not re.search(rf"^## {re.escape(version)}\b", Path("CHANGELOG.md").read_text(), re.M):
+              raise SystemExit(f"CHANGELOG.md has no section for {version}")
+          print(f"Validated {version}")
+          PY
+
+      - name: Reject existing tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${PACKAGE_VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${PACKAGE_VERSION} already exists" >&2
+            exit 1
+          fi
+          if gh release view "${PACKAGE_VERSION}" >/dev/null 2>&1; then
+            echo "Release ${PACKAGE_VERSION} already exists" >&2
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: swift format lint --strict -r Sources Tests Package.swift
+
+      - name: Build without warnings
+        run: |
+          ./script/build build 2>&1 | tee build.log
+          if [ -s build.log ]; then
+            echo "The build printed warnings or errors." >&2
+            exit 1
+          fi
+
+      - name: Run tests
+        run: ./script/test
+
+      - name: Test CLI version
+        run: test "$(.build/xcode/Build/Products/Release/demucs-mlx-swift --version)" = "${PACKAGE_VERSION}"
+
+  publish-github-release:
+    name: Publish GitHub release
+    runs-on: ubuntu-24.04
+    needs: [verify]
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PACKAGE_VERSION: ${{ inputs.version }}
+      NOTES_FILE: /tmp/release-notes.md
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Extract release notes
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["PACKAGE_VERSION"]
+          lines = Path("CHANGELOG.md").read_text().splitlines()
+          start = next(
+              (i + 1 for i, line in enumerate(lines)
+               if re.match(rf"^## {re.escape(version)}\b", line)),
+              None,
+          )
+          if start is None:
+              raise SystemExit(f"CHANGELOG.md has no section for {version}")
+          end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
+          notes = "\n".join(lines[start:end]).strip()
+          if not notes:
+              raise SystemExit(f"No release notes found under the {version} heading")
+          notes += (
+              "\n\n## Install\n\n```swift\n"
+              f'.package(url: "https://github.com/{os.environ["GITHUB_REPOSITORY"]}", from: "{version}")\n'
+              "```\n"
+          )
+          Path(os.environ["NOTES_FILE"]).write_text(notes)
+          print(notes)
+          PY
+
+      - name: Create tag and release
+        run: |
+          gh release create "${PACKAGE_VERSION}" \
+            --target "${GITHUB_SHA}" \
+            --title "${PACKAGE_VERSION}" \
+            --notes-file "${NOTES_FILE}"

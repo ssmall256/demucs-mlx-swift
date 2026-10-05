@@ -16,7 +16,7 @@ from demucs_mlx.mlx_transformer import set_attention_dtype
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("--cache", type=Path, default=Path(".build/models"))
 p.add_argument(
-    "--binary", type=Path, default=Path(".build/out/Products/Release/demucs-mlx-swift")
+    "--binary", type=Path, default=Path(".build/xcode/Build/Products/Release/demucs-mlx-swift")
 )
 p.add_argument("--output", type=Path, default=Path(".build/registry-parity"))
 p.add_argument("--models", nargs="+", default=list(MLX_MODEL_REGISTRY))

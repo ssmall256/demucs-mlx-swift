@@ -22,7 +22,7 @@ def main():
     p.add_argument(
         "--binary",
         type=Path,
-        default=Path(".build/out/Products/Release/demucs-mlx-swift"),
+        default=Path(".build/xcode/Build/Products/Release/demucs-mlx-swift"),
     )
     p.add_argument("--cache", type=Path, default=Path(".build/models"))
     p.add_argument("--fixtures", type=Path, default=Path(".build/full-fixtures"))

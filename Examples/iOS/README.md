@@ -24,6 +24,6 @@ xcrun devicectl device copy from --device YOUR_UDID \
   --source Documents/validation.json --destination validation.json
 ```
 
-Assets are staged into `.build/iOSAssets` and are not committed. Set your own development team and bundle identifier. The generated project requires Xcode 27 and iOS 27.
+Assets are staged into `.build/iOSAssets` and are not committed. Set your own development team and bundle identifier. The project targets iOS 17 and was last validated with Xcode 27 on iOS 27.
 
 Validation passed on an **iPhone 15 Pro, iOS 27.0**: four `[2,44100]` stems, all stems above 60 dB, successful WAV round trip, and approximately **1.6 GB** peak MLX allocation. A one-second fixture still executes a 7.8-second model segment. See [the validation report](../../docs/validation.md) for exact device measurements and desktop comparisons.

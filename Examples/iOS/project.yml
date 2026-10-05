@@ -1,7 +1,7 @@
 name: DemucsDeviceHarness
 options:
   deploymentTarget:
-    iOS: '27.0'
+    iOS: '17.0'
   createIntermediateGroups: true
 packages:
   Demucs:

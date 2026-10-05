@@ -1,0 +1,14 @@
+#!/bin/bash
+# Release build of every product into .build/xcode. Xcode's build system
+# compiles MLX's Metal shaders, which plain `swift build` cannot do before
+# Swift 6.4. MTL_IGNORE_WARNINGS silences warnings from MLX's shader sources,
+# so a clean build prints nothing.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+set +e
+xcodebuild -scheme demucs-mlx-swift-Package -configuration Release \
+  -destination 'platform=macOS,arch=arm64,variant=macos' -derivedDataPath "$root/.build/xcode" \
+  -skipPackagePluginValidation MTL_IGNORE_WARNINGS=YES ENABLE_TESTABILITY=YES \
+  -quiet "${@:-build}" 2>&1 | grep -v "IDERunDestination: Supported platforms"
+status=${PIPESTATUS[0]}
+exit "$status"

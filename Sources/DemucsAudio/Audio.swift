@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 @_spi(Profiling) import DemucsMLX
 import Foundation
 import MLX
@@ -64,7 +64,8 @@ public enum DemucsAudio {
       guard count < Double(UInt32.max),
         let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))
       else { throw DemucsError.invalidInput("Resampled audio exceeds PCM capacity") }
-      var provided = false
+      // The converter calls its input block synchronously during convert().
+      nonisolated(unsafe) var provided = false
       var error: NSError?
       let status = converter.convert(to: output, error: &error) { _, status in
         if provided {

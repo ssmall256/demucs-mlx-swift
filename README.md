@@ -6,7 +6,14 @@ Requires Swift 6.3 or later and Apple silicon. The deployment target is macOS 14
 
 ## Use the SDK
 
-Add this repository's URL to your package dependencies, or add a checkout as a local package in Xcode. Link `DemucsMLX` for tensors; add `DemucsAudio` for files and `AVAudioPCMBuffer` integration. The iOS example consumes these products as an external Xcode project.
+Add the package to your `Package.swift`, or add the same URL in Xcode:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/ssmall256/demucs-mlx-swift", from: "0.1.0")
+]
+```
+Link `DemucsMLX` for tensors; add `DemucsAudio` for files and `AVAudioPCMBuffer` integration. The iOS example consumes these products as an external Xcode project.
 
 ```swift
 import DemucsMLX
@@ -82,7 +89,6 @@ Original `mdx_q` / `mdx_extra_q` conversion also requires `diffq`; see [conversi
 ## Command-line use
 
 ```sh
-swift build -c release
 ./script/build_and_run.sh separate song.wav
 ./script/build_and_run.sh separate song.mp3 --format flac --two-stems vocals
 ./script/build_and_run.sh separate first.m4a second.wav --model htdemucs_ft --json stages.json
@@ -90,7 +96,9 @@ swift build -c release
 ./script/build_and_run.sh benchmark --seconds 30 --seed 481
 ```
 
-The build script builds and runs the release executable; with no arguments it prints help. `separate` downloads the model on first use (`--no-download` prevents that, `--cache` chooses the directory) and writes stems under `separated/<model>/<track>/`. `--format` selects `wav`, `wav24`, `wav-float32`, `flac`, `flac24`, `alac`, `alac24` or `aac`, and `--two-stems vocals` writes `vocals` and `no_vocals` only. `--prefetch 0 --write-workers 1 --io-memory-budget 0` selects serial I/O. Reports distinguish decode, inference and export, and the CLI reports total file-to-stems time. `tensor` reads an `audio` safetensors array and writes a `stems` array. `--help` describes every option.
+`./script/build` builds everything in release mode into `.build/xcode` without warnings; the tool is then at `.build/xcode/Build/Products/Release/demucs-mlx-swift`. The scripts use `xcodebuild` because MLX's Metal shaders have to be compiled by Xcode's build system: `swift build` only does that from Swift 6.4, and prints warnings from MLX's shader sources. In an Xcode project, add the package as usual.
+
+With no arguments the run script prints help. `separate` downloads the model on first use (`--no-download` prevents that, `--cache` chooses the directory) and writes stems under `separated/<model>/<track>/`. `--format` selects `wav`, `wav24`, `wav-float32`, `flac`, `flac24`, `alac`, `alac24` or `aac`, and `--two-stems vocals` writes `vocals` and `no_vocals` only. `--prefetch 0 --write-workers 1 --io-memory-budget 0` selects serial I/O. Reports distinguish decode, inference and export, and the CLI reports total file-to-stems time. `tensor` reads an `audio` safetensors array and writes a `stems` array. `--help` describes every option.
 
 | Model | Architecture | Sources | Ensemble |
 |---|---|---:|---:|

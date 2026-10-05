@@ -17,7 +17,7 @@ def main():
     parser.add_argument(
         "--binary",
         type=Path,
-        default=Path(".build/out/Products/Release/demucs-mlx-swift"),
+        default=Path(".build/xcode/Build/Products/Release/demucs-mlx-swift"),
     )
     parser.add_argument("--cache", type=Path, default=Path(".build/models"))
     parser.add_argument("--output", type=Path, default=Path(".build/cli-validation"))
